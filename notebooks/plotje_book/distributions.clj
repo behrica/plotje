@@ -75,6 +75,33 @@
                            (and (= 1 (:panels s))
                                 (pos? (:polygons s)))))])
 
+;; ## Log-Scale Histogram
+
+;; When bin counts span orders of magnitude, the smallest bars
+;; disappear next to the largest on a linear y-axis. A log y-scale
+;; lets every bar register. The data below doubles the count of
+;; each successive bin (1, 2, 4, ..., 512); on a log axis the
+;; doubling shows as a uniform staircase -- each bar a fixed step
+;; above the previous, the same step every time.
+
+;; The lower bound under log comes from the smallest positive bin
+;; count, not from the visual zero baseline -- log scales have no
+;; zero. Empty bins emit no bar and do not pull the axis down.
+
+(-> {:x (mapcat (fn [i] (repeat (long (Math/pow 2 i)) i)) (range 10))}
+    (pj/lay-histogram {:bins 10})
+    (pj/scale :y :log)
+    (pj/options {:title "Log Y on Histogram"}))
+
+(kind/test-last
+ [(fn [v]
+    (let [panel (-> v pj/plan :panels first)
+          [lo hi] (:y-domain panel)]
+      (and (= :log (:type (:y-scale panel)))
+           (pos? lo)
+           (< lo 1.0)
+           (< 500.0 hi 2000.0))))])
+
 ;; ## Density Plot
 
 ;; A smooth curve estimating the probability density function.

@@ -130,9 +130,17 @@
         show-x? (and show-x? (coord/show-ticks? coord-type))
         show-y? (and show-y? (coord/show-ticks? coord-type))
 
-        ;; y-domain minimum for area baseline
+        ;; Axis minimums in data space, used by bar/area marks to draw
+        ;; their baseline. On linear axes with a zero-baseline mark in
+        ;; play, the domain has already been extended to include zero
+        ;; (compute-global-y-domain). On log axes the value is the
+        ;; smallest positive value -- bars rest on the axis bottom
+        ;; rather than vanishing at log(0).
         y-domain-min (if (number? (first y-domain))
                        (first y-domain)
+                       0)
+        x-domain-min (if (number? (first x-domain))
+                       (first x-domain)
                        0)
 
         ;; Detect ridgeline layers and pre-compute positions (used for grid and ticks)
@@ -146,6 +154,7 @@
                      :coord-type coord-type
                      :coord-px coord-px
                      :y-domain-min y-domain-min
+                     :x-domain-min x-domain-min
                      :panel-width pw :panel-height ph :margin m}
               tooltip (assoc :tooltip true
                              :x-col-name x-col-name

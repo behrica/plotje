@@ -48,15 +48,20 @@
 
 (defn pad-domain
   "Add padding to a numeric domain. When lo == hi (constant data),
-   pads by ±1 or ±5% of |lo|, whichever is larger."
+   pads by ±1 or ±5% of |lo|, whichever is larger.
+   For log scales, callers must supply positive lo and hi -- the
+   responsibility for excluding non-positive values lives upstream
+   (filter-log-nonpositive for raw data, the scale-aware branch of
+   compute-global-y-domain for stat-derived ranges)."
   [[lo hi] scale-spec]
   (let [log? (= :log (:type scale-spec))
         padding (:domain-padding defaults/defaults)
-        ;; Guard: log scale requires positive values; clamp to small positive
-        [lo hi] (if log?
-                  [(max 1e-10 (double lo)) (max 1e-10 (double hi))]
-                  [lo hi])
-        [a b] (if log? [(Math/log lo) (Math/log hi)] [lo hi])
+        _ (when (and log? (or (not (pos? (double lo))) (not (pos? (double hi)))))
+            (throw (ex-info (str "pad-domain on a log scale requires positive bounds, got ["
+                                 lo " " hi "]. This is an internal invariant: the caller "
+                                 "should have filtered non-positive values upstream.")
+                            {:lo lo :hi hi :scale-spec scale-spec})))
+        [a b] (if log? [(Math/log (double lo)) (Math/log (double hi))] [lo hi])
         span (- b a)
         pad (if (<= span 0.0)
               ;; Constant data: use ±max(1, 5% of |value|)

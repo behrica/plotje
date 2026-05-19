@@ -49,14 +49,20 @@
 (defn compute-global-y-domain
   "Compute global y-domain from position-adjusted layers.
    Reads pre-computed :y0/:y1 from stacked layers. Extends domain to
-   include 0 for marks that draw from baseline (area, lollipop, value-bar).
-   Clamps the lower bound to 0 for these marks so padding doesn't extend
-   below the baseline."
+   include 0 for marks that draw from a zero baseline (bar, area,
+   lollipop, value-bar) on linear scales. On log scales, baseline
+   extension is skipped -- the lower bound is the smallest positive
+   value the layers report -- because log scales have no zero."
   [plan-layers scale-spec]
   (let [fill-layers (filter #(= :fill (:position %)) plan-layers)
         stack-layers (filter #(= :stack (:position %)) plan-layers)
-        zero-baseline-marks #{:lollipop :value-bar :area}
-        needs-zero? (some #(zero-baseline-marks (:mark %)) plan-layers)
+        log? (= :log (:type scale-spec))
+        ;; Marks whose visual identity anchors at y=0 (rectangle base, fill
+        ;; baseline, lollipop stem). :rect is the categorical-bar mark (from
+        ;; lay-bar/lay-value-bar); :bar is the histogram mark.
+        zero-baseline-marks #{:bar :rect :lollipop :area}
+        needs-zero? (and (not log?)
+                         (some #(zero-baseline-marks (:mark %)) plan-layers))
         extend-to-zero (fn [[lo hi]] [(min 0.0 (double lo)) (max 0.0 (double hi))])]
     (cond
       ;; Fill mode: normalized to [0, 1]
@@ -84,13 +90,19 @@
                                (when-not (#{:stack :fill} (:position l))
                                  (:y-domain l)))
                              plan-layers)
-            ;; Always include 0 -- stacked bars are drawn from the baseline
-            all-vals (concat rect-vals area-vals other-yd [0])
-            lo (double (reduce min all-vals))
-            hi (double (reduce max all-vals))]
-        (if (< lo hi)
-          (scale/pad-domain [lo hi] scale-spec)
-          [0 1]))
+            ;; Include 0 for the stacked-bar baseline on linear scales.
+            ;; Log scales have no zero -- skip the injection and rely on
+            ;; the data's own positive values for the lower bound.
+            baseline-vals (if log? [] [0])
+            raw-vals (concat rect-vals area-vals other-yd baseline-vals)
+            all-vals (if log? (filter pos? raw-vals) raw-vals)]
+        (if (seq all-vals)
+          (let [lo (double (reduce min all-vals))
+                hi (double (reduce max all-vals))]
+            (if (< lo hi)
+              (scale/pad-domain [lo hi] scale-spec)
+              [(if log? 1.0 0.0) (if log? 10.0 1.0)]))
+          [(if log? 1.0 0.0) (if log? 10.0 1.0)]))
 
       ;; Normal: collect y-domains from layers
       :else

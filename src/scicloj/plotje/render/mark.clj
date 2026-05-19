@@ -747,13 +747,18 @@
 
 (defmethod layer->membrane :bar [layer ctx]
   (let [{:keys [style groups]} layer
-        {:keys [sx sy]} ctx
+        {:keys [sx sy y-domain-min]} ctx
         coord-px (:coord-px ctx)
-        {:keys [opacity]} style]
+        {:keys [opacity]} style
+        ;; Bar baseline. On a linear axis, :bar is in zero-baseline-marks
+        ;; so the domain already includes 0. On a log axis (no zero), the
+        ;; baseline is the panel's smallest positive value -- bars rest
+        ;; on the axis bottom rather than vanishing.
+        y-base (max 0.0 (double y-domain-min))]
     (vec
      (for [{:keys [color bars]} groups
            {:keys [lo hi count]} bars
-           :let [pts (bar-polygon coord-px false (sx lo) (sx hi) (sy 0) (sy count))
+           :let [pts (bar-polygon coord-px false (sx lo) (sx hi) (sy y-base) (sy count))
                  [cr cg cb _] color]]
        (ui/with-color [cr cg cb (or opacity 1.0)]
          (ui/with-style ::ui/style-fill
@@ -853,6 +858,12 @@
         {:keys [opacity]} style
         coord-px (:coord-px ctx)
         position (or position :dodge)
+        ;; Numeric-axis baseline: 0 on linear (extended into domain by
+        ;; zero-baseline-marks rule), smallest positive on log (where
+        ;; 0 has no representation).
+        num-base (max 0.0 (double (if flipped?
+                                    (:x-domain-min ctx 0)
+                                    (:y-domain-min ctx 0))))
         mk-rect (fn [[cr cg cb _] cat-lo cat-hi val-lo val-hi]
                   (let [pts (bar-polygon coord-px flipped? cat-lo cat-hi val-lo val-hi)]
                     (ui/with-color [cr cg cb (or opacity 1.0)]
@@ -864,9 +875,10 @@
        (for [group groups
              {:keys [category y0 y1]} (:counts group)
              :when (and y0 y1 (not= y0 y1))]
-         (let [bp (band-position band-s category 0 1 0.8)]
+         (let [bp (band-position band-s category 0 1 0.8)
+               y0' (max num-base (double y0))]
            (mk-rect (:color group) (:lo bp) (:hi bp)
-                    (num-s y0) (num-s y1)))))
+                    (num-s y0') (num-s y1)))))
       ;; Dodged: use dodge-ctx annotations from position/apply-positions
       (let [{:keys [n-groups] :or {n-groups 1}} (:dodge-ctx layer)
             frac 0.8]
@@ -877,7 +889,7 @@
            (let [dodge-idx (or (:dodge-idx group) 0)
                  bp (band-position band-s category dodge-idx n-groups frac)]
              (mk-rect (:color group) (:lo bp) (:hi bp)
-                      (num-s 0) (num-s count)))))))))
+                      (num-s num-base) (num-s count)))))))))
 
 (defn layer->membrane-value-bars
   "Render value bars from a plan :rect layer."
@@ -887,14 +899,18 @@
         {:keys [opacity]} style
         coord-px (:coord-px ctx)
         {:keys [n-groups] :or {n-groups (clojure.core/count groups)}} (:dodge-ctx layer)
-        frac 0.8]
+        frac 0.8
+        num-base (max 0.0 (double (if flipped?
+                                    (:x-domain-min ctx 0)
+                                    (:y-domain-min ctx 0))))]
     (vec
      (for [group groups
            i (range (clojure.core/count (:xs group)))
            :let [[cr cg cb _] (:color group)
                  cat (nth (:xs group) i)
                  val (nth (:ys group) i)
-                 base (if-let [y0s (:y0s group)] (nth y0s i) 0)
+                 base (max num-base
+                           (double (if-let [y0s (:y0s group)] (nth y0s i) 0)))
                  dodge-idx (or (:dodge-idx group) 0)
                  bp (band-position band-s cat dodge-idx n-groups frac)
                  pts (bar-polygon coord-px flipped? (:lo bp) (:hi bp) (num-s base) (num-s val))]]

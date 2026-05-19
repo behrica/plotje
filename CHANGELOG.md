@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased]
+- fix: `pj/scale :y :log` now works on histograms and categorical bar charts. Closes #5.
 - fix: SVG coordinate formatter now pins `java.util.Locale/ROOT`, so plots render correctly on JVMs whose default locale uses comma as the decimal separator (Czech, German, etc.). Thanks to [@tombarys](https://github.com/tombarys) (#3).
 
 ## [0.2.1 - 2026-05-09]

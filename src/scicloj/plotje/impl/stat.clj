@@ -283,13 +283,20 @@
                            all-bin-data)
             ;; Floor at 1 for raw counts; floor at 0 for density (values are typically < 1)
             floor (if (= normalize :density) 0 1)
-            max-count (reduce max floor (for [{:keys [bin-maps]} all-bin-data
-                                              b bin-maps]
-                                          (:count b)))]
+            all-counts (for [{:keys [bin-maps]} all-bin-data
+                             b bin-maps]
+                         (:count b))
+            max-count (reduce max floor all-counts)
+            ;; Truthful y-domain: range of values that produce visible bars.
+            ;; Zero-count bins emit no bar, so they don't contribute. Lower
+            ;; bound = min positive count; bar's visual baseline-at-zero is
+            ;; a mark concern, applied at the global-domain stage.
+            positive-counts (filter pos? all-counts)
+            min-y (if (seq positive-counts) (reduce min positive-counts) floor)]
         {:bins all-bin-data
          :max-count max-count
          :x-domain (numeric-extent xs-col)
-         :y-domain [0 max-count]}))))
+         :y-domain [min-y max-count]}))))
 
 ;; ---- Counting ----
 
@@ -323,8 +330,10 @@
                              0
                              (if-let [ds (get grouped (zipmap [x color-col] [cat cc]))]
                                (tc/row-count ds) 0)))
-                max-count (reduce max 1 (for [cat categories, cc color-cats]
-                                          (count-fn cat cc)))]
+                all-counts (for [cat categories, cc color-cats] (count-fn cat cc))
+                max-count (reduce max 1 all-counts)
+                positive-counts (filter pos? all-counts)
+                min-y (if (seq positive-counts) (reduce min positive-counts) 1)]
             {:categories categories
              :bars (vec (for [cc color-cats]
                           {:color cc
@@ -332,18 +341,21 @@
                                          categories)}))
              :max-count max-count
              :x-domain categories
-             :y-domain [0 max-count]})
+             :y-domain [min-y max-count]})
           (let [counts-by-cat (mapv (fn [cat]
                                       {:category cat
                                        :count (if-let [ds (get grouped {x cat})]
                                                 (tc/row-count ds) 0)})
                                     categories)
-                max-count (reduce max 1 (map :count counts-by-cat))]
+                all-counts (map :count counts-by-cat)
+                max-count (reduce max 1 all-counts)
+                positive-counts (filter pos? all-counts)
+                min-y (if (seq positive-counts) (reduce min positive-counts) 1)]
             {:categories categories
              :bars [{:counts counts-by-cat}]
              :max-count max-count
              :x-domain categories
-             :y-domain [0 max-count]}))))))
+             :y-domain [min-y max-count]}))))))
 
 ;; ---- Linear Regression ----
 

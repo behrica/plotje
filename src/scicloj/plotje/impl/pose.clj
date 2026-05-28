@@ -331,10 +331,11 @@
 (defn- effective-axis-col
   "The column ref this resolved leaf uses for `axis`. Layer-level
    mappings take precedence over the leaf's own :mapping. Layers
-   that disagree with the leaf's position are rejected upstream by
-   lay-on-pose (Pose Rule LP2: distinct positional aesthetics mean
-   distinct poses), so by the time this function runs, all layer
-   mappings either match the leaf's column or are absent."
+   that would disagree with the leaf's position are redirected
+   upstream by lay-on-pose (Pose Rule LP2: distinct positional
+   aesthetics mean distinct poses, so the non-matching layer lands
+   on a separate sub-pose), so by the time this function runs, all
+   layer mappings either match the leaf's column or are absent."
   [leaf axis]
   (or (some (fn [layer] (get-in layer [:mapping axis]))
             (:layers leaf))

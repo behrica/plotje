@@ -488,44 +488,41 @@
 ;; ============================================================
 ;;
 ;; When a leaf already carries position and `pj/lay-*` is called with
-;; a non-matching position, the new position lives on the LAYER's
-;; own `:mapping` rather than creating a new panel. At render, the
-;; layer's position overrides the pose's via merge -- an overlay on
-;; the same panel. This differs from the old Sketch-world behavior
-;; (where a non-matching position would have created a new view /
-;; panel); in the pose world, adding a panel is an explicit `pj/pose`
-;; call. Pinned here so the next slice can't silently change it.
+;; a non-matching position, the leaf is promoted into a 2-panel
+;; composite. The original leaf's layers stay with panel-1; the new
+;; sub-pose carries the new position and the new layer. This is the
+;; lay-* analog of Pose Rule LP3 (which already handled the composite
+;; case the same way): distinct positional aesthetics mean distinct
+;; poses, applied symmetrically across leaf and composite inputs.
 
-(deftest leaf-layer-non-matching-position-rejected-test
-  ;; Pre-alpha: distinct positional aesthetics mean distinct poses
-  ;; (Pose Rule LP2). Calling lay-* with x/y columns that conflict
-  ;; with the leaf's own mapping throws -- to draw with different
-  ;; columns, build a multi-pair pose or use pj/arrange with
-  ;; explicit sub-poses.
-  (testing "leaf with position, lay-* with non-matching position -- throws"
-    (is (thrown-with-msg? clojure.lang.ExceptionInfo
-                          #"conflict with the pose's existing position"
-                          (-> iris
-                              (pj/pose :a :b)
-                              (pj/lay-point :c :d)))))
-  (testing "the error message names both conflicting axes"
-    (is (thrown-with-msg? clojure.lang.ExceptionInfo
-                          #":x.*:y|:y.*:x"
-                          (-> iris
-                              (pj/pose :a :b)
-                              (pj/lay-point :c :d)))))
+(deftest leaf-layer-non-matching-position-promotes-test
+  (testing "leaf with position, lay-* with non-matching position -- promotes"
+    (let [fr (-> iris
+                 (pj/pose :a :b)
+                 (pj/lay-point :c :d))]
+      (is (= 2 (count (:poses fr))))
+      (is (= {:x :a :y :b} (:mapping (first (:poses fr)))))
+      (is (= {:x :c :y :d} (:mapping (second (:poses fr)))))))
+  (testing "promotion keeps the original layer on panel-1 (not flowing root)"
+    (let [fr (-> iris
+                 (pj/lay-point :a :b)
+                 (pj/lay-point :c :d))]
+      (is (nil? (:layers fr)))
+      (is (= 1 (count (:layers (first (:poses fr))))))
+      (is (= 1 (count (:layers (second (:poses fr))))))))
   (testing "matching position passes -- redundant :mapping on the layer is fine"
     (let [f (-> iris
                 (pj/pose :a :b)
                 (pj/lay-point :a :b))]
       (is (= {:x :a :y :b} (:mapping f)))
       (is (= 1 (count (:layers f))))))
-  (testing "string vs keyword: distinct column references, so position conflicts"
-    (is (thrown-with-msg? clojure.lang.ExceptionInfo
-                          #"conflict with the pose's existing position"
-                          (-> iris
-                              (pj/pose :a :b)
-                              (pj/lay-point "a" "b"))))))
+  (testing "string vs keyword: distinct column references, so promotes"
+    (let [fr (-> iris
+                 (pj/pose :a :b)
+                 (pj/lay-point "a" "b"))]
+      (is (= 2 (count (:poses fr))))
+      (is (= {:x :a :y :b} (:mapping (first (:poses fr)))))
+      (is (= {:x "a" :y "b"} (:mapping (second (:poses fr))))))))
 
 ;; ============================================================
 ;; Layer structural keys -- :stat, :position, :mark (Decision 1)

@@ -1391,8 +1391,15 @@
    position.
 
    Leaf whose own :mapping already has position, called with a
-   position: append a layer carrying its own :mapping so downstream
-   partitioning treats it as panel-origin.
+   matching position: append a layer carrying its own :mapping so
+   downstream partitioning treats it as panel-origin.
+
+   Leaf whose own :mapping already has position, called with a
+   non-matching position: promote the leaf into a composite, then
+   attach the layer to the new sub-pose -- mirroring LP3 for the
+   composite case. The Identity rule applies symmetrically: non-
+   matching columns create a new leaf, whether the receiver is a
+   leaf or a composite.
 
    No position (leaf or composite + aesthetic-only): append the
    bare / aesthetic layer to :layers."
@@ -1416,32 +1423,29 @@
                                 :when (and pos-v leaf-v
                                            (not= pos-v leaf-v))]
                             [k pos-v leaf-v])]
-        (when (seq disagreements)
-          (throw (ex-info
-                  (str "lay-" (name layer-type-key)
-                       " was given position columns that conflict with"
-                       " the pose's existing position. A panel has a"
-                       " single x-axis and a single y-axis, so a layer"
-                       " can't override the pose's position to a"
-                       " different column. Conflicts: "
-                       (pr-str (mapv (fn [[k pos-v leaf-v]]
-                                       {k {:layer pos-v :pose leaf-v}})
-                                     disagreements))
-                       ". To draw with different x/y columns, build a"
-                       " separate sub-pose: e.g.\n"
-                       "  (pj/arrange [base-pose"
-                       " (-> data (pj/lay-" (name layer-type-key)
-                       " " (or (:x position-mapping) ":x")
-                       " " (or (:y position-mapping) ":y") "))])\n"
-                       "or thread a multi-pair pose:"
-                       " (pj/pose data [[:a :b] [:c :d]]).")
-                  {:caller (str "pj/lay-" (name layer-type-key))
-                   :pose-mapping leaf-mapping
-                   :layer-mapping position-mapping
-                   :conflicts (mapv first disagreements)})))
-        (update fr :layers (fnil conj [])
-                (elide-empty-maps
-                 (update bare-layer :mapping (fnil merge {}) position-mapping))))
+        (if (seq disagreements)
+          ;; Stamp the leaf's position onto each bare layer before
+          ;; promotion so promote-leaf treats them as panel-origin
+          ;; (they stay with the original panel) rather than root-
+          ;; origin (which would make them flow to the new panel and
+          ;; misuse its column refs). This is the lay-* analog of
+          ;; LP3: a non-matching position on a leaf creates a new
+          ;; sub-pose, not a layer that crosses panels.
+          (let [leaf-pos (select-keys (:mapping fr) [:x :y])
+                stamped (update fr :layers
+                                (fn [ls]
+                                  (mapv (fn [l]
+                                          (if (layer-has-position? l)
+                                            l
+                                            (assoc l :mapping leaf-pos)))
+                                        (or ls []))))]
+            (-> stamped
+                (promote-leaf position-mapping)
+                (add-leaf-layer-to-composite position-mapping bare-layer)
+                prepare-pose))
+          (update fr :layers (fnil conj [])
+                  (elide-empty-maps
+                   (update bare-layer :mapping (fnil merge {}) position-mapping)))))
 
       :else
       (update fr :layers (fnil conj []) bare-layer))))

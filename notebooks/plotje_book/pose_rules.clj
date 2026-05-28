@@ -530,27 +530,26 @@ composite-pose
          (= :point
             (:layer-type (first (:layers (first (:poses pose))))))))])
 
-;; **Note on leaf-input with non-matching position (rejected).**
-;; A panel has a single x-axis and a single y-axis. When the
-;; receiver is a single leaf that carries position and the `lay-*`
-;; call carries a **different** position, the call **throws** --
-;; distinct positional aesthetics mean distinct poses, and a layer
-;; can't override the pose's position to a different column.
-;; To draw with different x/y columns, build a multi-pair pose
-;; (`pj/pose data [[:a :b] [:c :d]]`) for separate panels, or
-;; arrange two leaves with `pj/arrange`.
+;; **Note on leaf-input with non-matching position.**
+;; A leaf that already carries position, called with a `lay-*` that
+;; carries a **different** position, is **promoted** into a 2-panel
+;; composite. The original leaf's layers stay with panel-1; the new
+;; sub-pose carries the call's position and the new layer. This is
+;; the symmetric counterpart of LP3 below: distinct positional
+;; aesthetics mean distinct poses, whether the receiver is a leaf
+;; or a composite.
 
-(try
-  (-> iris
-      (pj/pose :sepal-length :sepal-width)
-      (pj/lay-point :petal-length :petal-width))
-  (catch clojure.lang.ExceptionInfo e
-    (ex-message e)))
+(-> iris
+    (pj/pose :sepal-length :sepal-width)
+    (pj/lay-point :petal-length :petal-width))
 
 (kind/test-last
- [(fn [msg]
-    (and (string? msg)
-         (re-find #"conflict with the pose's existing position" msg)))])
+ [(fn [fr]
+    (and (= 2 (count (:poses fr)))
+         (= {:x :sepal-length :y :sepal-width}
+            (:mapping (first (:poses fr))))
+         (= {:x :petal-length :y :petal-width}
+            (:mapping (second (:poses fr))))))])
 
 ;; ### Rule LP3: on a composite, position-carrying `lay-*` misses append a new leaf at root
 ;;
@@ -558,8 +557,8 @@ composite-pose
 ;; matching effective `:x`/`:y`, a new leaf is appended at the
 ;; composite's root `:poses`. Its `:mapping` carries the call's
 ;; position; a single layer with matching position attaches to it.
-;; (Leaf-input with non-matching position is a separate case --
-;; overlay, per LP2 above.)
+;; The same rule applies to leaf input (see LP2 above) -- a leaf
+;; with non-matching position is promoted to a composite first.
 
 (-> iris
     (pj/pose :sepal-length :sepal-width)
@@ -572,6 +571,28 @@ composite-pose
          (= {:x :sepal-length :y :petal-length}
             (:mapping (nth (:poses pose) 2)))
          (= 1 (count (:layers (nth (:poses pose) 2))))))])
+
+;; **Property: LP2 and LP3 produce the same panel structure.**
+;; Promoting via `lay-*` (LP2) and building the composite explicitly
+;; via two `pj/pose` calls then attaching layers (LP3) produce the
+;; same sub-pose positions in the same order. The layer-attachment
+;; details differ (the LP2 path stamps the original leaf's position
+;; on its pre-existing layers so they stay with panel-1), but the
+;; panel-level structure is the same.
+
+(let [via-lay  (-> iris
+                   (pj/lay-point :sepal-length :sepal-width)
+                   (pj/lay-point :petal-length :petal-width))
+      via-pose (-> iris
+                   (pj/pose :sepal-length :sepal-width)
+                   (pj/pose :petal-length :petal-width)
+                   (pj/lay-point :sepal-length :sepal-width)
+                   (pj/lay-point :petal-length :petal-width))]
+  {:via-lay-mappings  (mapv :mapping (:poses via-lay))
+   :via-pose-mappings (mapv :mapping (:poses via-pose))})
+
+(kind/test-last
+ [(fn [m] (= (:via-lay-mappings m) (:via-pose-mappings m)))])
 
 ;; ### Rule LP4: `lay-*` on raw data coerces the data into a leaf pose
 ;;

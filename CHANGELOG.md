@@ -5,9 +5,9 @@ All notable changes to this project will be documented in this file. This change
 ## [Unreleased]
 
 ## [0.3.0 - 2026-05-28]
-- `pj/lay-*` with a non-matching position on a leaf-with-position now promotes the leaf into a 2-panel composite (the layer goes on a new sub-pose), mirroring how the same call already behaves on a composite (Rule LP3). Previously this threw "conflict with the pose's existing position". The Identity rule applies symmetrically: non-matching columns create a new leaf, whether the receiver is a leaf or a composite.
-- `pj/lay-*` now raises a focused "column doesn't exist in the data the new sub-pose would use" error when the new position columns (under LP2 promotion or LP3 composite append) are absent from the inherited data and the layer carries no own `:data`. Catches typos at the call site rather than deferring to a generic plan-stage "column not found".
-- When a layer carries its own `:data` and the pose's position columns are absent from that data, the column-validation error now names the source ("inherited from the pose's mapping") and offers two paths: rename the column to align with the pose's position for an overlay, or set the axis on the layer call to create a separate sub-pose. Previously the user saw a generic "Column ... not found" with no hint about why the panel's column was being looked up in the layer's own data.
+- `pj/lay-*` with different x/y columns from the existing pose now produces a two-panel composite instead of throwing.
+- When `pj/lay-*` would create a new panel using columns that don't exist in the data, the error now fires at the lay call with a clear message, instead of later during `pj/plan` or `pj/plot`.
+- When a layer carries its own `:data` but the pose's x/y columns are missing from it, the error now names where the missing column came from and suggests two fixes: rename the column to match, or set a different x/y on the layer.
 
 ## [0.2.2 - 2026-05-19]
 - fix: `pj/scale :y :log` now works on histograms and categorical bar charts. (Closes #5) - thanks, @harold.

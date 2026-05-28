@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 - `pj/lay-*` with a non-matching position on a leaf-with-position now promotes the leaf into a 2-panel composite (the layer goes on a new sub-pose), mirroring how the same call already behaves on a composite (Rule LP3). Previously this threw "conflict with the pose's existing position". The Identity rule applies symmetrically: non-matching columns create a new leaf, whether the receiver is a leaf or a composite.
+- `pj/lay-*` now raises a focused "column doesn't exist in the data the new sub-pose would use" error when the new position columns (under LP2 promotion or LP3 composite append) are absent from the inherited data and the layer carries no own `:data`. Catches typos at the call site rather than deferring to a generic plan-stage "column not found".
 
 ## [0.2.2 - 2026-05-19]
 - fix: `pj/scale :y :log` now works on histograms and categorical bar charts. (Closes #5) - thanks, @harold.

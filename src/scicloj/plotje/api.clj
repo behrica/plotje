@@ -1194,18 +1194,66 @@
                            " in a " context "'s options map.")
                       fk)))))
 
+(defn- layer-type-name
+  "Human-readable name for a layer-type value in error messages."
+  [layer-type]
+  (cond
+    (keyword? layer-type) (name layer-type)
+    (and (map? layer-type) (keyword? (:layer-type layer-type)))
+    (name (:layer-type layer-type))
+    :else "*"))
+
+(defn- check-new-sub-pose-columns
+  "Safety check fired when `lay-*` would create a new sub-pose
+   (LP2 promotion of a leaf-with-position, or LP3 miss on a
+   composite). Verify each non-nil column in `position-mapping`
+   exists in the data the new sub-pose will see: the layer's own
+   `:data` if it has one, otherwise `fallback-data` (the existing
+   leaf's or composite's data the new sub-pose would inherit). A
+   focused error here saves the user from a deep plan-stage
+   'column not found' on a column they likely typo'd."
+  [layer-type position-mapping layer fallback-data]
+  (when-let [d (or (:data layer) fallback-data)]
+    (let [col-names (set (tc/column-names d))]
+      (doseq [k [:x :y]
+              :let [col (get position-mapping k)]
+              :when (and col
+                         (resolve/column-ref? col)
+                         (not (contains? col-names col)))]
+        (throw (ex-info
+                (str "lay-" (layer-type-name layer-type)
+                     " " k " " (pr-str col)
+                     " names a column that doesn't exist in the data"
+                     " the new sub-pose would use. Available columns: "
+                     (vec (sort col-names))
+                     ". The " k " differs from the receiving pose's"
+                     " position, so this layer would land on a new"
+                     " sub-pose -- but that sub-pose has no column"
+                     " " (pr-str col) " to map to. If you meant to"
+                     " overlay on the existing panel, align the"
+                     " layer's columns with the pose's position"
+                     " (rename the data's columns if needed). If you"
+                     " meant a separate sub-pose, pass `:data` on this"
+                     " lay-* call with the new columns.")
+                {:caller (str "pj/lay-" (layer-type-name layer-type))
+                 :key k :column col :available (sort col-names)}))))))
+
 (defn- add-leaf-layer-to-composite
   "Walk the composite depth-first and append the layer to the last
    leaf whose effective :x/:y (after ancestor-merge) match
-   `position-mapping`. On miss, append a fresh leaf at the root level."
+   `position-mapping`. On miss, append a fresh leaf at the root level
+   (LP3) after firing the new-sub-pose column-existence safety check."
   [fr position-mapping layer]
   (let [match-path (pose/last-matching-leaf-path fr position-mapping)]
     (if (some? match-path)
       (update-in fr
                  (conj (pose/path->update-in-path match-path) :layers)
                  (fnil conj []) layer)
-      (update fr :poses (fnil conj [])
-              {:mapping position-mapping :layers [layer]}))))
+      (do
+        (check-new-sub-pose-columns (:layer-type layer)
+                                    position-mapping layer (:data fr))
+        (update fr :poses (fnil conj [])
+                {:mapping position-mapping :layers [layer]})))))
 
 (defn- check-position-mapping
   "Throw a helpful error if :x or :y in a layer's options is a
@@ -1439,6 +1487,8 @@
                                             l
                                             (assoc l :mapping leaf-pos)))
                                         (or ls []))))]
+            (check-new-sub-pose-columns layer-type-key position-mapping
+                                        bare-layer (:data fr))
             (-> stamped
                 (promote-leaf position-mapping)
                 (add-leaf-layer-to-composite position-mapping bare-layer)

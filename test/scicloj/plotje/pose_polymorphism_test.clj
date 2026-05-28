@@ -517,9 +517,14 @@
       (is (= {:x :a :y :b} (:mapping f)))
       (is (= 1 (count (:layers f))))))
   (testing "string vs keyword: distinct column references, so promotes"
+    ;; Layer-level :data with string-named columns makes the safety
+    ;; check pass: the new sub-pose has columns "a" and "b" to map
+    ;; to. Without it, the safety check correctly notes that strings
+    ;; "a"/"b" do not match the iris dataset's keyword columns.
     (let [fr (-> iris
                  (pj/pose :a :b)
-                 (pj/lay-point "a" "b"))]
+                 (pj/lay-point "a" "b"
+                               {:data (tc/dataset {"a" [1 2] "b" [1 2]})}))]
       (is (= 2 (count (:poses fr))))
       (is (= {:x :a :y :b} (:mapping (first (:poses fr)))))
       (is (= {:x "a" :y "b"} (:mapping (second (:poses fr))))))))

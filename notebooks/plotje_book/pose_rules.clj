@@ -594,6 +594,42 @@ composite-pose
 (kind/test-last
  [(fn [m] (= (:via-lay-mappings m) (:via-pose-mappings m)))])
 
+;; **Property: column-existence safety check on the new sub-pose.**
+;; When LP2 or LP3 would create a new sub-pose for a non-matching
+;; position, `lay-*` first checks that the new position columns
+;; exist in the data the sub-pose would use -- the layer's own
+;; `:data` if present, otherwise the inherited data. A missing
+;; column is almost always a typo or a column name mismatch; the
+;; check raises a focused error at the call site rather than
+;; deferring to a generic "column not found" at plan time.
+
+(try
+  (-> iris
+      (pj/pose :sepal-length :sepal-width)
+      (pj/lay-point :nope :nada))
+  (catch clojure.lang.ExceptionInfo e
+    (ex-message e)))
+
+(kind/test-last
+ [(fn [msg]
+    (and (string? msg)
+         (re-find #"doesn't exist in the data" msg)
+         (re-find #"new sub-pose" msg)))])
+
+;; Supplying `:data` on the lay-* call satisfies the safety check
+;; -- the new sub-pose has its own data with the new columns.
+
+(-> iris
+    (pj/pose :sepal-length :sepal-width)
+    (pj/lay-point :foo :bar
+                  {:data (tc/dataset {:foo [1 2 3] :bar [4 5 6]})}))
+
+(kind/test-last
+ [(fn [fr]
+    (and (= 2 (count (:poses fr)))
+         (= {:x :foo :y :bar}
+            (:mapping (second (:poses fr))))))])
+
 ;; ### Rule LP4: `lay-*` on raw data coerces the data into a leaf pose
 ;;
 ;; `lay-*` called with a dataset as its first argument coerces the

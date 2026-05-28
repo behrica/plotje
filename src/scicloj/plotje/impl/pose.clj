@@ -683,29 +683,71 @@
       (when (> (count types) 1)
         (sort (map #(.getSimpleName ^Class %) types))))))
 
+(defn- mapping-source
+  "Return :layer, :layer-type, or :pose to indicate where the
+   effective value of `k` in the resolved mapping originated."
+  [k layer-mapping layer-type-info]
+  (cond
+    (contains? layer-mapping k)   :layer
+    (contains? layer-type-info k) :layer-type
+    :else                          :pose))
+
+(defn- column-not-found-message
+  "Build a focused error message for a missing column reference.
+   When the layer carries its own :data and the failing key was
+   inherited from the pose, surface that asymmetry and offer two
+   fixes (rename to align with pose for overlay, or override on
+   the layer to create a separate sub-pose)."
+  [k col col-names {:keys [layer-type-key layer-own-data? source]}]
+  (let [layer-name (if (keyword? layer-type-key) (name layer-type-key) "*")]
+    (case (when (and layer-own-data? (= :pose source)) :pose-inherited)
+      :pose-inherited
+      (str "lay-" layer-name " " k " " (pr-str col)
+           ", inherited from the pose's mapping, names a column"
+           " absent from this layer's :data. Available columns: "
+           (vec (sort col-names))
+           ". To overlay on the existing panel, rename the column"
+           " in :data to " (pr-str col) ". To draw this layer on"
+           " a separate sub-pose, set " k " on the layer call"
+           " to a column that exists in :data.")
+      ;; Default: simple "not found" with the available columns
+      (str "Column " col " (from " k ") not found in dataset."
+           " Available: " (sort col-names)))))
+
 (defn- validate-columns
   "Validate that every aesthetic column reference in the resolved
    mapping names a real column in the dataset. Rejects heterogeneous
    object columns (mixed numbers/strings/keywords). Matching is
    strict: a keyword reference does not match a string column name
-   and vice versa."
-  [resolved d]
-  (when d
-    (let [col-names (set (tc/column-names d))
-          col-exists? col-names
-          col-lookup #(get d %)]
-      (doseq [k defaults/column-keys
-              :let [col (get resolved k)]
-              :when (and col
-                         (resolve/column-ref? col)
-                         (not (and (= k :color) (string? col))))]
-        (when-not (col-exists? col)
-          (throw (ex-info (str "Column " col " (from " k ") not found in dataset. Available: " (sort col-names))
-                          {:key k :column col :available (sort col-names)})))
-        (when-let [types (heterogeneous-types (col-lookup col))]
-          (throw (ex-info (str "Column " col " (from " k ") has mixed value types: " (vec types)
-                               ". Convert it to a single type (number, string, etc.) before plotting.")
-                          {:key k :column col :types types})))))))
+   and vice versa. The optional `ctx` map carries source-of-mapping
+   information so the error can name whether the failing reference
+   came from the pose or from the layer."
+  ([resolved d] (validate-columns resolved d nil))
+  ([resolved d ctx]
+   (when d
+     (let [col-names (set (tc/column-names d))
+           col-exists? col-names
+           col-lookup #(get d %)
+           {:keys [layer-mapping layer-type-info layer-type-key layer-own-data?]} ctx]
+       (doseq [k defaults/column-keys
+               :let [col (get resolved k)]
+               :when (and col
+                          (resolve/column-ref? col)
+                          (not (and (= k :color) (string? col))))]
+         (when-not (col-exists? col)
+           (let [source (mapping-source k (or layer-mapping {}) (or layer-type-info {}))]
+             (throw (ex-info
+                     (column-not-found-message
+                      k col col-names
+                      {:layer-type-key layer-type-key
+                       :layer-own-data? layer-own-data?
+                       :source source})
+                     {:key k :column col :available (sort col-names)
+                      :source source}))))
+         (when-let [types (heterogeneous-types (col-lookup col))]
+           (throw (ex-info (str "Column " col " (from " k ") has mixed value types: " (vec types)
+                                ". Convert it to a single type (number, string, etc.) before plotting.")
+                           {:key k :column col :types types}))))))))
 
 (defn- resolve-facet-col
   "Resolve a facet column ref against a dataset; throw with a clear
@@ -815,8 +857,13 @@
                              layer-type-info
                              layer-mapping
                              layer-structural)
+             layer-own-data?  (some? (:data layer))
              d (coerce-dataset (or (:data layer) (:data variant)))]
-         (validate-columns resolved d)
+         (validate-columns resolved d
+                           {:layer-mapping layer-mapping
+                            :layer-type-info layer-type-info
+                            :layer-type-key (:layer-type layer)
+                            :layer-own-data? layer-own-data?})
          (-> resolved
              (assoc :data d
                     :__panel-idx variant-idx)

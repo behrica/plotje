@@ -470,6 +470,32 @@
 
 (kind/test-last [(fn [m] (string? m))])
 
+;; ### Layer with own :data, missing the pose's position columns
+;;
+;; When a layer carries its own `:data` and the pose's position
+;; columns are absent from that data, the error names the source
+;; (inherited from the pose's mapping) and offers two paths: rename
+;; the column for an overlay, or set the axis on the layer call for
+;; a separate sub-pose. This is the diagnostic for the common
+;; ggplot2-trained reflex of attaching a second layer with a fresh
+;; dataset whose columns don't align with the panel's axes.
+
+(try
+  (-> (tc/dataset {:fitted [1 2 3] :residual [1 2 3]})
+      (pj/lay-point :fitted :residual)
+      (pj/lay-text {:data (tc/dataset {:x    [1 2 3]
+                                       :y    [1 2 3]
+                                       :text [:a :b :c]})})
+      pj/plan)
+  (catch clojure.lang.ExceptionInfo e
+    (ex-message e)))
+
+(kind/test-last
+ [(fn [m]
+    (and (string? m)
+         (re-find #"inherited from the pose's mapping" m)
+         (re-find #"absent from this layer's :data" m)))])
+
 ;; ### Unsupported polar mark
 
 (try

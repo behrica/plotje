@@ -194,6 +194,80 @@ dashboard
 ;; vertically; each row is laid out horizontally. Every cell is a
 ;; leaf pose -- `pj/arrange` does not accept composite cells.
 
+;; ## Drawing Layers with Different Data
+;;
+;; A layer can carry its own `:data` via the layer options map.
+;; This is how reference lines, prediction overlays, and small
+;; annotation datasets attach to a plot. The wrinkle is what the
+;; layer's columns must refer to: a panel has one x-axis and one
+;; y-axis, both identified by their column ref, so a layer that
+;; renders on a panel uses the panel's column refs to look up
+;; values in its data.
+;;
+;; That rule gives two patterns -- "overlay on the same panel"
+;; and "this layer on a separate sub-pose" -- with different
+;; mechanics. Knowing which one you want determines the call
+;; shape.
+;;
+;; ### Overlay on the same panel
+;;
+;; To draw the layer on the existing panel with data from
+;; elsewhere, use the panel's column refs. If your incoming
+;; dataset uses different names, rename them on the way in via
+;; `tc/rename-columns`. Here a base scatter is overlaid with a
+;; second set of points from another dataset:
+
+(def overlay-base
+  (tc/dataset {:fitted   [1 2 3]
+               :residual [1 2 3]}))
+
+(def overlay-other
+  (tc/dataset {:x [0.5 1.5 2.5]
+               :y [1.5 2.5 3.5]}))
+
+(-> overlay-base
+    (pj/lay-point :fitted :residual)
+    (pj/lay-point :fitted :residual
+                  {:data (tc/rename-columns overlay-other
+                                            {:x :fitted :y :residual})}))
+
+(kind/test-last
+ [(fn [v]
+    (let [s (pj/svg-summary v)]
+      (and (= 1 (:panels s))
+           (= 6 (:points s)))))])
+
+;; Both layers use the pose's `:fitted` and `:residual` column
+;; refs; the second layer's data, renamed to those columns,
+;; renders into the same panel. The result is one panel with
+;; six points -- three from each layer.
+;;
+;; ### Separate sub-pose for the new layer
+;;
+;; To put the new layer on its own panel, name the layer's
+;; columns directly. A non-matching position triggers LP2
+;; promotion: the original leaf becomes panel-1; a new sub-pose
+;; carrying the new position and the new layer becomes panel-2.
+;; The two render side by side under the default `:matrix`
+;; layout.
+
+(-> overlay-base
+    (pj/lay-point :fitted :residual)
+    (pj/lay-point :x :y {:data overlay-other}))
+
+(kind/test-last
+ [(fn [v]
+    (let [s (pj/svg-summary v)]
+      (and (= 2 (:panels s))
+           (= 6 (:points s)))))])
+
+;; Each panel has three points and its own x/y axis labels:
+;; panel-1 shows `fitted` vs `residual`, panel-2 shows `x` vs
+;; `y`. (For finer layout control -- different weights, shared
+;; scales, or an explicit grid -- build the composite via
+;; `pj/arrange` or the explicit composite-pose form shown
+;; earlier in the chapter.)
+
 ;; ## Notes on the Current Implementation
 ;;
 ;; A few details about how composition renders today, in case they

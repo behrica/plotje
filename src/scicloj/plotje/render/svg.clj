@@ -578,3 +578,14 @@
       :sizes data-sizes
       :alphas data-alphas
       :shapes data-prims})))
+
+;; flare, re-uses :svg format
+(defmethod  scicloj.plotje.impl.render/membrane->plot :flare [membrane-tree format opts]
+  (let [svg (render/membrane->plot membrane-tree :svg opts)]
+    (tagged-literal 'flare/html
+                    (merge
+                     {:html (hiccup->svg-str svg),
+                      :title (get opts :flare-title "")
+                      :key (get opts :flare-key "")}
+                     (:config opts)))))
+

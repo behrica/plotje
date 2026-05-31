@@ -26,7 +26,7 @@ the Grammar of Graphics.
 Add to your `deps.edn`:
 
 ```clojure
-org.scicloj/plotje {:mvn/version "0.1.0"}
+org.scicloj/plotje {:mvn/version "0.3.0"}
 ```
 
 Several core dependencies (kindly, fastmath, clojure2d, membrane,

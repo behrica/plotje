@@ -268,6 +268,55 @@ dashboard
 ;; `pj/arrange` or the explicit composite-pose form shown
 ;; earlier in the chapter.)
 
+;; ## Layer Order Is Paint Order
+;;
+;; When two layers share a panel, they paint in the order written:
+;; the first `lay-*` call renders first, and each later call renders
+;; on top of it. This matters whenever layers overlap -- a value
+;; label sitting on a bar, a trend line crossing its points. The rule
+;; is simple: add the layer you want on top last.
+;;
+;; Here a horizontal bar carries a value label. The bar is added
+;; first; the label, drawn from its own small dataset positioned at
+;; each bar's midpoint, is added last, so it reads on top of the fill
+;; instead of hiding behind it.
+
+(def bar-counts
+  {:species ["setosa" "versicolor" "virginica"]
+   :pct     [33.3 33.3 33.3]})
+
+(def bar-labels
+  {:species ["setosa" "versicolor" "virginica"]
+   :pct     [16.6 16.6 16.6]
+   :label   ["33.3" "33.3" "33.3"]})
+
+(-> bar-counts
+    (pj/lay-value-bar :species :pct {:color "#a6cee3"})
+    (pj/lay-text :species :pct {:text :label :data bar-labels})
+    (pj/coord :flip))
+
+(kind/test-last
+ [(fn [fr]
+    (= [:rect :text]
+       (->> fr pj/plan :panels first :layers (mapv :mark))))])
+
+;; Swapping the two calls swaps which layer paints on top. Paint
+;; order follows the order the layers were added, not the layer type
+;; -- so the bar can be drawn over the label just as easily.
+
+(kind/test-last
+ [(fn [_]
+    (let [marks (fn [pose]
+                  (->> pose pj/plan :panels first :layers (mapv :mark)))]
+      (and (= [:rect :text]
+              (marks (-> bar-counts
+                         (pj/lay-value-bar :species :pct)
+                         (pj/lay-text :species :pct {:text :label :data bar-labels}))))
+           (= [:text :rect]
+              (marks (-> bar-counts
+                         (pj/lay-text :species :pct {:text :label :data bar-labels})
+                         (pj/lay-value-bar :species :pct)))))))])
+
 ;; ## Notes on the Current Implementation
 ;;
 ;; A few details about how composition renders today, in case they

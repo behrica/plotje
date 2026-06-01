@@ -1202,7 +1202,7 @@
 (kind/test-last [(fn [v] (pos? (:polygons (pj/svg-summary v))))])
 
 ;; ### Grouped boxplot
-;; Source: [Vega-Lite: Grouped Box Plot](https://vega.github.io/vega-lite/examples/boxplot_groupped.html)
+;; Source: [Vega-Lite: 2D Box Plot](https://vega.github.io/vega-lite/examples/boxplot_2D_vertical.html)
 
 ;; Boxplots split by both day and sex:
 

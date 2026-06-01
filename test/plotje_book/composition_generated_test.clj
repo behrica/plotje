@@ -145,7 +145,7 @@
       (pj/svg-summary v)
       panels
       (mapv
-       (fn* [p1__82250#] (-> p1__82250# :plan :panels first))
+       (fn* [p1__71051#] (-> p1__71051# :plan :panels first))
        (:sub-plots (pj/plan marginal)))
       [d-x s-x]
       (mapv :x-domain panels)
@@ -245,8 +245,76 @@
    v34_l254)))
 
 
+(def
+ v37_l284
+ (def
+  bar-counts
+  {:species ["setosa" "versicolor" "virginica"],
+   :pct [33.3 33.3 33.3]}))
+
+
+(def
+ v38_l288
+ (def
+  bar-labels
+  {:species ["setosa" "versicolor" "virginica"],
+   :pct [16.6 16.6 16.6],
+   :label ["33.3" "33.3" "33.3"]}))
+
+
+(def
+ v39_l293
+ (->
+  bar-counts
+  (pj/lay-value-bar :species :pct {:color "#a6cee3"})
+  (pj/lay-text :species :pct {:text :label, :data bar-labels})
+  (pj/coord :flip)))
+
+
 (deftest
- t37_l302
+ t40_l298
+ (is
+  ((fn
+    [fr]
+    (=
+     [:rect :text]
+     (->> fr pj/plan :panels first :layers (mapv :mark))))
+   v39_l293)))
+
+
+(deftest
+ t42_l307
+ (is
+  ((fn
+    [_]
+    (let
+     [marks
+      (fn
+       [pose]
+       (->> pose pj/plan :panels first :layers (mapv :mark)))]
+     (and
+      (=
+       [:rect :text]
+       (marks
+        (->
+         bar-counts
+         (pj/lay-value-bar :species :pct)
+         (pj/lay-text
+          :species
+          :pct
+          {:text :label, :data bar-labels}))))
+      (=
+       [:text :rect]
+       (marks
+        (->
+         bar-counts
+         (pj/lay-text :species :pct {:text :label, :data bar-labels})
+         (pj/lay-value-bar :species :pct)))))))
+   v39_l293)))
+
+
+(deftest
+ t44_l351
  (is
   ((fn
     [_]
@@ -273,4 +341,4 @@
      (and
       (= #{:color} (-> all-color pj/plan :chrome :shared-aesthetics))
       (= #{} (-> mixed pj/plan :chrome :shared-aesthetics)))))
-   v34_l254)))
+   v39_l293)))

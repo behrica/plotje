@@ -201,15 +201,30 @@
    Groups layers by position type and applies adjustments per group.
    Stack/fill: modifies y-values (data transform).
    Dodge: annotates groups with indices (layout annotation).
-   Layer order within each position bucket is preserved from the input."
+
+   The returned layers are in the input (pose) order, which becomes the
+   paint order downstream. Grouping by position type is only an internal
+   step so stack/dodge can compute geometry shared across same-position
+   layers; it must not leak into paint order. (It used to: emitting in
+   the canonical position order meant text/label marks -- position
+   :identity -- always painted before, and so under, bar marks -- position
+   :dodge/:stack -- regardless of the order the author added them.)"
   [layers]
-  (let [by-pos (group-by #(or (:position %) :identity) layers)
-        ;; Emit known positions in canonical order first, then any
-        ;; unknown ones so nothing is silently dropped.
+  (let [;; Tag each layer with its original index so the author's order
+        ;; can be restored after grouping. apply-position preserves
+        ;; arbitrary keys on each layer map and the within-group order,
+        ;; so this index survives every position transform.
+        indexed (map-indexed (fn [i l] (assoc l :__layer-order i)) layers)
+        by-pos (group-by #(or (:position %) :identity) indexed)
+        ;; Iterate known positions in canonical order first, then any
+        ;; unknown ones, so the per-group computation is deterministic
+        ;; regardless of group-by's hash-based key order.
         known (set position-order)
         ordered (concat position-order
                         (filter (complement known) (keys by-pos)))]
-    (vec (mapcat (fn [pos]
+    (->> ordered
+         (mapcat (fn [pos]
                    (when-let [ls (seq (get by-pos pos))]
-                     (apply-position pos ls)))
-                 ordered))))
+                     (apply-position pos ls))))
+         (sort-by :__layer-order)
+         (mapv #(dissoc % :__layer-order)))))

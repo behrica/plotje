@@ -30,17 +30,6 @@
 ;;
 ;; ## Usage
 ;;
-;; Add to your `deps.edn`:
-;;
-;; ```clojure
-;; org.scicloj/plotje {:mvn/version "0.1.0"}
-;; ```
-;;
-;; Several core dependencies (kindly, fastmath, clojure2d, membrane,
-;; wadogo) are still on alpha or beta channels. Adopters may need
-;; to ride those alpha-channel transitives until they cut stable
-;; releases.
-;;
 ;; Plotje is intended to be used with data-visualization tools
 ;; that support the [Kindly](https://scicloj.github.io/kindly) convention
 ;; such as [Clay](https://scicloj.github.io/clay/).

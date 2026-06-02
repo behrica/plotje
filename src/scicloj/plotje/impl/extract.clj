@@ -232,17 +232,46 @@
                    :label (defaults/fmt-category-label color)
                    :xs xs :ys ys}))})))
 
+(def ^:private align-x-values
+  "Horizontal anchor values: which part of the text lands on the data point."
+  #{:left :center :right})
+
+(def ^:private align-y-values
+  "Vertical anchor values: which part of the text lands on the data point.
+   Data-oriented -- :top means the top edge of the text sits at the point
+   (text extends downward), :bottom the bottom edge (text extends upward)."
+  #{:bottom :center :top})
+
+(defn- resolve-align
+  "Resolve and validate the text anchor for a :text/:label draft layer.
+   Defaults :align-x to :left and :align-y to :center, preserving the
+   placement text marks had before anchoring existed."
+  [draft-layer]
+  (let [ax (or (:align-x draft-layer) :left)
+        ay (or (:align-y draft-layer) :center)]
+    (when-not (align-x-values ax)
+      (throw (ex-info (str ":align-x must be one of " (sort align-x-values)
+                           ", got: " (pr-str ax))
+                      {:align-x ax})))
+    (when-not (align-y-values ay)
+      (throw (ex-info (str ":align-y must be one of " (sort align-y-values)
+                           ", got: " (pr-str ay))
+                      {:align-y ay})))
+    {:align-x ax :align-y ay}))
+
 (defmethod extract-layer :text [draft-layer stat all-colors cfg]
   (-> {:mark :text
-       :style {:font-size (or (:font-size draft-layer) 10)
-               :opacity (or (:fixed-alpha draft-layer) 1.0)}
+       :style (merge {:font-size (or (:font-size draft-layer) 10)
+                      :opacity (or (:fixed-alpha draft-layer) 1.0)}
+                     (resolve-align draft-layer))
        :groups (extract-xy-groups draft-layer stat all-colors cfg :with-labels? true)}
       (apply-nudge draft-layer)))
 
 (defmethod extract-layer :label [draft-layer stat all-colors cfg]
   (-> {:mark :label
-       :style {:font-size (or (:font-size draft-layer) 10)
-               :opacity (or (:fixed-alpha draft-layer) 1.0)}
+       :style (merge {:font-size (or (:font-size draft-layer) 10)
+                      :opacity (or (:fixed-alpha draft-layer) 1.0)}
+                     (resolve-align draft-layer))
        :groups (extract-xy-groups draft-layer stat all-colors cfg :with-labels? true)}
       (apply-nudge draft-layer)))
 

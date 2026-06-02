@@ -253,26 +253,45 @@
 
 ;; ---- Text ----
 
+(defn- text-anchor-offset
+  "Pixel offset to add to a text origin (top-left) so the anchored part of
+   the text lands on the data point. `text-w`/`text-h` are estimated glyph
+   box dimensions. `align-x` (default :left) is :left/:center/:right;
+   `align-y` (default :center) is :top/:center/:bottom, data-oriented so
+   :top puts the text's top edge at the point (text extends downward)."
+  [align-x align-y text-w text-h]
+  [(case (or align-x :left)
+     :left   0.0
+     :center (- (/ (double text-w) 2.0))
+     :right  (- (double text-w)))
+   (case (or align-y :center)
+     :top    0.0
+     :center (- (/ (double text-h) 2.0))
+     :bottom (- (double text-h)))])
+
 (defmethod layer->membrane :text [layer ctx]
   (let [{:keys [style groups]} layer
         {:keys [coord-fn]} ctx
-        {:keys [font-size opacity]} style
+        {:keys [font-size opacity align-x align-y]} style
         fsize (or font-size 10)
-        op (or opacity 1.0)]
+        op (or opacity 1.0)
+        char-w (* fsize 0.6)]
     (vec
      (for [{:keys [color xs ys labels]} groups
            i (range (count xs))
            :let [[px py] (coord-fn (xs i) (ys i))
                  label (if labels (labels i) "")
-                 [cr cg cb _] color]]
-       (ui/translate (double px) (- (double py) (/ fsize 2.0))
+                 [cr cg cb _] color
+                 text-w (* (count label) char-w)
+                 [dx dy] (text-anchor-offset align-x align-y text-w fsize)]]
+       (ui/translate (+ (double px) dx) (+ (double py) dy)
                      (ui/with-color [cr cg cb op]
                        (ui/label label (ui/font nil fsize))))))))
 
 (defmethod layer->membrane :label [layer ctx]
   (let [{:keys [style groups]} layer
         {:keys [coord-fn]} ctx
-        {:keys [font-size opacity]} style
+        {:keys [font-size opacity align-x align-y]} style
         fsize (or font-size 10)
         op (or opacity 1.0)
         pad-x 3 pad-y 2
@@ -283,11 +302,13 @@
            :let [[px py] (coord-fn (xs i) (ys i))
                  label (if labels (labels i) "")
                  [cr cg cb _] color
-                 text-y (- (double py) (/ fsize 2.0))
                  text-w (* (count label) char-w)
+                 [dx dy] (text-anchor-offset align-x align-y text-w fsize)
+                 origin-x (+ (double px) dx)
+                 origin-y (+ (double py) dy)
                  rect-w (+ text-w (* 2 pad-x))
                  rect-h (+ fsize (* 2 pad-y))]]
-       (ui/translate (double px) text-y
+       (ui/translate origin-x origin-y
                      [(ui/translate (- pad-x) (- pad-y)
                                     (ui/filled-rectangle [1.0 1.0 1.0 (* 0.85 op)] rect-w rect-h))
                       (ui/translate (- pad-x) (- pad-y)

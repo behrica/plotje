@@ -31,6 +31,8 @@
    :position "Position adjustment keyword — how overlapping groups are arranged (see pj/position-doc)"
    :nudge-x "Shift all x-coordinates by this data-space amount"
    :nudge-y "Shift all y-coordinates by this data-space amount"
+   :align-x "Horizontal text anchor — :left, :center, or :right (default :left); which part of the label sits at the x position"
+   :align-y "Vertical text anchor — :top, :center, or :bottom (default :center); which part of the label sits at the y position. Data-oriented: :top puts the label's top edge at the point"
    :size "Column keyword or fixed number — point radius or stroke width"
    :shape "Column keyword for per-point shape"
    :jitter "true or pixel amount — random offset to reduce overplotting"
@@ -107,8 +109,8 @@
 (register! :summary {:mark :pointrange :stat :summary :accepts [:size] :doc "Summary — mean ± standard error per category."})
 (register! :errorbar {:mark :errorbar :stat :identity :accepts [:y-min :y-max :size :cap-width :nudge-x :nudge-y] :doc "Errorbar — vertical error bars."})
 (register! :lollipop {:mark :lollipop :stat :identity :accepts [:size] :doc "Lollipop — stem with dot."})
-(register! :text {:mark :text :stat :identity :accepts [:text :font-size :nudge-x :nudge-y] :doc "Text — data-driven labels."})
-(register! :label {:mark :label :stat :identity :accepts [:text :font-size :nudge-x :nudge-y] :doc "Label — text with background box."})
+(register! :text {:mark :text :stat :identity :accepts [:text :font-size :nudge-x :nudge-y :align-x :align-y] :doc "Text — data-driven labels."})
+(register! :label {:mark :label :stat :identity :accepts [:text :font-size :nudge-x :nudge-y :align-x :align-y] :doc "Label — text with background box."})
 (register! :rug {:mark :rug :stat :identity :x-only true :accepts [:side :length] :doc "Rug — axis-margin tick marks."})
 (register! :interval-h {:mark :interval-h :stat :identity :accepts [:x-end :interval-thickness]
                         ;; Dodge/stack/fill don't compose with interval-h yet -- a Gantt

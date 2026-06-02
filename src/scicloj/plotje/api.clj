@@ -1969,7 +1969,11 @@
 
 (defn lay-text
   "Add `:text` layer type -- text labels at data coordinates.
-   Requires x, y, and {`:text` `:column`} for label content."
+   Requires x, y, and {`:text` `:column`} for label content.
+   `:align-x` (`:left`/`:center`/`:right`, default `:left`) and `:align-y`
+   (`:top`/`:center`/`:bottom`, default `:center`) set which part of the
+   text lands on the data point -- e.g. `:align-x :right` tucks the label
+   inside a bar's end, extending leftward."
   ([pose-or-data] (lay-layer-type :text pose-or-data))
   ([pose-or-data x-or-opts] (lay-layer-type :text pose-or-data x-or-opts))
   ([pose-or-data x y-or-opts] (lay-layer-type :text pose-or-data x y-or-opts))
@@ -1977,7 +1981,9 @@
 
 (defn lay-label
   "Add `:label` layer type -- text labels with background box at data coordinates.
-   Like `:text` but with a rectangular background for readability."
+   Like `:text` but with a rectangular background for readability.
+   Accepts the same `:align-x`/`:align-y` anchors as `lay-text` (defaults
+   `:left`/`:center`); the background box follows the anchored text."
   ([pose-or-data] (lay-layer-type :label pose-or-data))
   ([pose-or-data x-or-opts] (lay-layer-type :label pose-or-data x-or-opts))
   ([pose-or-data x y-or-opts] (lay-layer-type :label pose-or-data x y-or-opts))

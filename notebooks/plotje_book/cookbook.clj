@@ -330,6 +330,29 @@
                            (and (pos? (:points s))
                                 (some #(= "virginica" %) (:texts s)))))])
 
+;; ### Value labels inside bars
+;;
+;; To print a value on each bar, overlay a `lay-text` layer added after
+;; the bar so it paints on top. Use `:align-x :right` so the label's
+;; right edge sits at the bar's end, tucking the text inside the fill
+;; (extending leftward) rather than spilling past the bar.
+
+(def species-share
+  {:species ["setosa" "versicolor" "virginica"]
+   :percent [33.3 33.3 33.3]})
+
+(-> species-share
+    (pj/lay-value-bar :species :percent {:color "#a6cee3"})
+    (pj/lay-text :species :percent {:text :percent :align-x :right})
+    (pj/coord :flip))
+
+(kind/test-last
+ [(fn [fr]
+    (let [text-layer (->> fr pj/plan :panels first :layers
+                          (filter #(= :text (:mark %)))
+                          first)]
+      (= :right (-> text-layer :style :align-x))))])
+
 ;; ### Custom palette map
 
 ;; Assign specific colors to each category using a palette map.

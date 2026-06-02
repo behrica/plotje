@@ -311,6 +311,85 @@
                            (and (= 3 (:polygons s))
                                 (contains? (:alphas s) 0.4))))])
 
+;; ## Text and Label Placement
+;;
+;; `pj/lay-text` and `pj/lay-label` place a label at a data point. By
+;; default the label starts at the point and reads to the right,
+;; centered on the point vertically. Two options move the label relative
+;; to the point by choosing which part of the text the point pins:
+;;
+;; - `:align-x` -- `:left`, `:center`, or `:right` (default `:left`)
+;; - `:align-y` -- `:top`, `:center`, or `:bottom` (default `:center`)
+;;
+;; The value names the part of the text placed at the point. `:align-x
+;; :right` pins the right edge, so the label extends leftward; `:align-x
+;; :center` straddles the point. `:align-y` reads in data orientation:
+;; `:top` pins the top edge, so the text reads downward from the point,
+;; and `:bottom` pins the bottom edge, so the text floats above it.
+;;
+;; Three labels on a column of points at the same x, one per horizontal
+;; anchor -- the text fans right of, across, and left of the point:
+
+(-> {:x [2 2 2] :y [3 2 1]}
+    (pj/lay-point :x :y {:size 6 :color "#888888"})
+    (pj/lay-text :x :y {:text :tag :align-x :left
+                        :data {:x [2] :y [3] :tag ["align-x :left"]}})
+    (pj/lay-text :x :y {:text :tag :align-x :center
+                        :data {:x [2] :y [2] :tag ["align-x :center"]}})
+    (pj/lay-text :x :y {:text :tag :align-x :right
+                        :data {:x [2] :y [1] :tag ["align-x :right"]}}))
+
+(kind/test-last
+ [(fn [fr]
+    (= [:left :center :right]
+       (->> fr pj/plan :panels first :layers
+            (filter #(= :text (:mark %)))
+            (mapv #(-> % :style :align-x)))))])
+
+;; A practical use of `:align-y`: float a value label just above each
+;; bar by pinning the label's bottom edge to the bar top, centered over
+;; the bar.
+
+(-> {:species ["setosa" "versicolor" "virginica"]
+     :pct     [33.3 33.3 33.3]}
+    (pj/lay-value-bar :species :pct {:color "#a6cee3"})
+    (pj/lay-text :species :pct {:text :pct :align-x :center :align-y :bottom}))
+
+(kind/test-last
+ [(fn [fr]
+    (let [text-style (->> fr pj/plan :panels first :layers
+                          (filter #(= :text (:mark %)))
+                          first :style)]
+      (and (= :center (:align-x text-style))
+           (= :bottom (:align-y text-style)))))])
+
+;; Every anchor value flows through for both `pj/lay-text` and
+;; `pj/lay-label`; the defaults reproduce the original placement, and an
+;; unrecognized value is rejected at plan time.
+
+(kind/test-last
+ [(fn [_]
+    (let [text-style
+          (fn [layer-fn mark opts]
+            (->> (-> {:x [1] :y [1] :t ["a"]}
+                     (layer-fn :x :y (merge {:text :t} opts)))
+                 pj/plan :panels first :layers
+                 (filter #(= mark (:mark %)))
+                 first :style
+                 (#(select-keys % [:align-x :align-y]))))]
+      (and
+       (= {:align-x :left :align-y :center} (text-style pj/lay-text :text {}))
+       (= :left   (:align-x (text-style pj/lay-text :text {:align-x :left})))
+       (= :center (:align-x (text-style pj/lay-text :text {:align-x :center})))
+       (= :right  (:align-x (text-style pj/lay-text :text {:align-x :right})))
+       (= :top    (:align-y (text-style pj/lay-text :text {:align-y :top})))
+       (= :center (:align-y (text-style pj/lay-text :text {:align-y :center})))
+       (= :bottom (:align-y (text-style pj/lay-text :text {:align-y :bottom})))
+       (= {:align-x :right :align-y :top}
+          (text-style pj/lay-label :label {:align-x :right :align-y :top}))
+       (try (text-style pj/lay-text :text {:align-x :middle}) false
+            (catch Exception _ true)))))])
+
 ;; ## Annotation Appearance
 ;;
 ;; Reference lines and bands are introduced in

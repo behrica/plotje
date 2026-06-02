@@ -905,8 +905,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><code>[pose-or-data x-or-opts]</code></p>
 <p><code>[pose-or-data x y-or-opts]</code></p>
 <p><code>[pose-or-data x y opts]</code></p>
-<p>Add <code>:text</code> layer type – text labels at data coordinates. Requires x, y, and {<code>:text</code> <code>:column</code>} for label content.</p>
-<p>Accepted options: :alpha :color :color-type :data :font-size :group :mark :nudge-x :nudge-y :position :stat :text :x :x-type :y :y-type.</p>
+<p>Add <code>:text</code> layer type – text labels at data coordinates. Requires x, y, and {<code>:text</code> <code>:column</code>} for label content. <code>:align-x</code> (<code>:left</code>/<code>:center</code>/<code>:right</code>, default <code>:left</code>) and <code>:align-y</code> (<code>:top</code>/<code>:center</code>/<code>:bottom</code>, default <code>:center</code>) set which part of the text lands on the data point – e.g.&nbsp;<code>:align-x :right</code> tucks the label inside a bar’s end, extending leftward.</p>
+<p>Accepted options: :align-x :align-y :alpha :color :color-type :data :font-size :group :mark :nudge-x :nudge-y :position :stat :text :x :x-type :y :y-type.</p>
 <div class="sourceClojure">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb29"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> {<span class="at">:x</span> [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>] <span class="at">:y</span> [<span class="dv">4</span> <span class="dv">7</span> <span class="dv">5</span> <span class="dv">8</span>] <span class="at">:name</span> [<span class="st">"A"</span> <span class="st">"B"</span> <span class="st">"C"</span> <span class="st">"D"</span>]}</span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    (pj/lay-text <span class="at">:x</span> <span class="at">:y</span> {<span class="at">:text</span> <span class="at">:name</span>}))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -919,8 +919,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><code>[pose-or-data x-or-opts]</code></p>
 <p><code>[pose-or-data x y-or-opts]</code></p>
 <p><code>[pose-or-data x y opts]</code></p>
-<p>Add <code>:label</code> layer type – text labels with background box at data coordinates. Like <code>:text</code> but with a rectangular background for readability.</p>
-<p>Accepted options: :alpha :color :color-type :data :font-size :group :mark :nudge-x :nudge-y :position :stat :text :x :x-type :y :y-type.</p>
+<p>Add <code>:label</code> layer type – text labels with background box at data coordinates. Like <code>:text</code> but with a rectangular background for readability. Accepts the same <code>:align-x</code>/<code>:align-y</code> anchors as <code>lay-text</code> (defaults <code>:left</code>/<code>:center</code>); the background box follows the anchored text.</p>
+<p>Accepted options: :align-x :align-y :alpha :color :color-type :data :font-size :group :mark :nudge-x :nudge-y :position :stat :text :x :x-type :y :y-type.</p>
 <div class="sourceClojure">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb30"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> {<span class="at">:x</span> [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>] <span class="at">:y</span> [<span class="dv">4</span> <span class="dv">7</span> <span class="dv">5</span> <span class="dv">8</span>] <span class="at">:name</span> [<span class="st">"A"</span> <span class="st">"B"</span> <span class="st">"C"</span> <span class="st">"D"</span>]}</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    (pj/lay-point <span class="at">:x</span> <span class="at">:y</span> {<span class="at">:size</span> <span class="dv">5</span>})</span>
@@ -1480,7 +1480,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb75"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a>(pj/layer-type? (pj/layer-type-lookup <span class="at">:point</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="printedClojure">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb76"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="va">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb76"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="va">false</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="membrane" class="level3">
@@ -1989,7 +1989,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb118"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">count</span> pj/layer-option-docs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="printedClojure">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb119"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb119-1"><a href="#cb119-1" aria-hidden="true" tabindex="-1"></a><span class="dv">29</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb119"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb119-1"><a href="#cb119-1" aria-hidden="true" tabindex="-1"></a><span class="dv">31</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 </section>

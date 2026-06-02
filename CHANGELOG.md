@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. This change
 ## [Unreleased]
 - Layers sharing a panel now paint in the order they were added -- each `pj/lay-*` call renders on top of the previous one -- instead of being reordered by position type. A `pj/lay-text` or `pj/lay-label` added after a bar now reads on top of it rather than being hidden underneath.
 - `pj/lay-text` and `pj/lay-label` accept `:align-x` (`:left`/`:center`/`:right`) and `:align-y` (`:top`/`:center`/`:bottom`) to set which part of the label sits on the data point -- e.g. `:align-x :right` tucks a value label inside a bar's end. Defaults `:left`/`:center` preserve the previous placement.
+- `:nudge-x`/`:nudge-y` on a categorical axis now raise a clear error pointing to `:align-x`/`:align-y` (and `:jitter`/`:position :dodge`), instead of failing with a cryptic cast error. Nudge is a data-space shift and applies only to numeric or temporal axes.
 
 ## [0.3.0 - 2026-05-28]
 - `pj/lay-*` with different x/y columns from the existing pose now produces a two-panel composite instead of throwing.

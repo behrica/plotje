@@ -168,6 +168,50 @@
 ;; [Inference Rules](./plotje_book.inference_rules.html)
 ;; for a worked example.
 
+;; ## Nudge on a Categorical Axis
+;;
+;; **Symptom**: Passing `:nudge-x` (or `:nudge-y`) to a label or point
+;; layer whose corresponding axis is categorical raises an error like
+;; `":nudge-x is a data-space shift and does not apply to a categorical
+;; x axis"`.
+;;
+;; **Cause**: `:nudge-x`/`:nudge-y` shift coordinates by a data-space
+;; amount. On a categorical axis the coordinates are still category
+;; labels at this stage -- their drawing positions are assigned later by
+;; the renderer -- so a numeric shift has no defined meaning. A value
+;; label on a bar hits this, because the bar's axis is categorical:
+
+(try
+  (-> {:species ["setosa" "versicolor" "virginica"] :pct [33.3 33.3 33.3]}
+      (pj/lay-value-bar :species :pct)
+      (pj/lay-text :species :pct {:text :pct :nudge-x -2})
+      pj/plan)
+  (catch clojure.lang.ExceptionInfo e (ex-message e)))
+
+(kind/test-last
+ [(fn [msg] (re-find #":nudge-x .* categorical x axis" msg))])
+
+;; **Fix**: To place a label on a categorical axis, anchor it with
+;; `:align-x`/`:align-y` instead -- `:align-x :right` tucks the label
+;; inside a bar's end. (To spread overlapping marks on a categorical
+;; axis, use `:jitter` or `:position :dodge`.)
+
+(-> {:species ["setosa" "versicolor" "virginica"] :pct [33.3 33.3 33.3]}
+    (pj/lay-value-bar :species :pct {:color "#a6cee3"})
+    (pj/lay-text :species :pct {:text :pct :align-x :right})
+    (pj/coord :flip))
+
+(kind/test-last
+ [(fn [fr]
+    (= :right
+       (->> fr pj/plan :panels first :layers
+            (filter #(= :text (:mark %)))
+            first :style :align-x)))])
+
+;; Anchoring is covered in the Text and Label Placement section of
+;; [Customization](./plotje_book.customization.html). `:nudge-x` and
+;; `:nudge-y` remain available on numeric and temporal axes.
+
 ;; ## Log Scale via `:scale-x` / `:scale-y` Options
 ;;
 ;; **Symptom**: Passing `{:scale-x :log}` (or `{:scale-y :log}`)

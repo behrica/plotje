@@ -28,8 +28,27 @@
 
    Previously, `:lm` and `:loess` listed `:nudge-x`/`:nudge-y` in their
    `:accepts` but the segment-style groups they produced were silently
-   untouched because only :xs/:ys were updated."
-  [layer {:keys [nudge-x nudge-y]}]
+   untouched because only :xs/:ys were updated.
+
+   Nudge is a data-space shift, so it only applies to a numeric or
+   temporal axis. On a categorical axis the coordinates are still
+   category labels at this stage (positions are assigned later by the
+   renderer), so a numeric shift has no meaning -- refuse it with a
+   message pointing at the tools that do place marks on a categorical
+   axis."
+  [layer {:keys [nudge-x nudge-y x-type y-type]}]
+  (when (and nudge-x (= x-type :categorical))
+    (throw (ex-info (str ":nudge-x is a data-space shift and does not apply to a "
+                         "categorical x axis. To place a label on a categorical "
+                         "axis use :align-x; to offset overlapping marks use "
+                         ":jitter or :position :dodge.")
+                    {:nudge-x nudge-x :x-type x-type})))
+  (when (and nudge-y (= y-type :categorical))
+    (throw (ex-info (str ":nudge-y is a data-space shift and does not apply to a "
+                         "categorical y axis. To place a label on a categorical "
+                         "axis use :align-y; to offset overlapping marks use "
+                         ":jitter or :position :dodge.")
+                    {:nudge-y nudge-y :y-type y-type})))
   (if (or nudge-x nudge-y)
     (let [nx (when nudge-x (double nudge-x))
           ny (when nudge-y (double nudge-y))]

@@ -145,7 +145,7 @@
       (pj/svg-summary v)
       panels
       (mapv
-       (fn* [p1__81312#] (-> p1__81312# :plan :panels first))
+       (fn* [p1__80829#] (-> p1__80829# :plan :panels first))
        (:sub-plots (pj/plan marginal)))
       [d-x s-x]
       (mapv :x-domain panels)
@@ -227,7 +227,7 @@
 
 
 (def
- v34_l254
+ v34_l257
  (->
   overlay-base
   (pj/lay-point :fitted :residual)
@@ -235,86 +235,18 @@
 
 
 (deftest
- t35_l258
+ t35_l261
  (is
   ((fn
     [v]
     (let
      [s (pj/svg-summary v)]
      (and (= 2 (:panels s)) (= 6 (:points s)))))
-   v34_l254)))
-
-
-(def
- v37_l284
- (def
-  bar-counts
-  {:species ["setosa" "versicolor" "virginica"],
-   :pct [33.3 33.3 33.3]}))
-
-
-(def
- v38_l288
- (def
-  bar-labels
-  {:species ["setosa" "versicolor" "virginica"],
-   :pct [16.6 16.6 16.6],
-   :label ["33.3" "33.3" "33.3"]}))
-
-
-(def
- v39_l293
- (->
-  bar-counts
-  (pj/lay-value-bar :species :pct {:color "#a6cee3"})
-  (pj/lay-text :species :pct {:text :label, :data bar-labels})
-  (pj/coord :flip)))
+   v34_l257)))
 
 
 (deftest
- t40_l298
- (is
-  ((fn
-    [fr]
-    (=
-     [:rect :text]
-     (->> fr pj/plan :panels first :layers (mapv :mark))))
-   v39_l293)))
-
-
-(deftest
- t42_l307
- (is
-  ((fn
-    [_]
-    (let
-     [marks
-      (fn
-       [pose]
-       (->> pose pj/plan :panels first :layers (mapv :mark)))]
-     (and
-      (=
-       [:rect :text]
-       (marks
-        (->
-         bar-counts
-         (pj/lay-value-bar :species :pct)
-         (pj/lay-text
-          :species
-          :pct
-          {:text :label, :data bar-labels}))))
-      (=
-       [:text :rect]
-       (marks
-        (->
-         bar-counts
-         (pj/lay-text :species :pct {:text :label, :data bar-labels})
-         (pj/lay-value-bar :species :pct)))))))
-   v39_l293)))
-
-
-(deftest
- t44_l351
+ t37_l305
  (is
   ((fn
     [_]
@@ -341,4 +273,4 @@
      (and
       (= #{:color} (-> all-color pj/plan :chrome :shared-aesthetics))
       (= #{} (-> mixed pj/plan :chrome :shared-aesthetics)))))
-   v39_l293)))
+   v34_l257)))

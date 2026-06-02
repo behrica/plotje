@@ -143,6 +143,63 @@ multi-layer
 (kind/test-last [(fn [v] (and (= 2 (count (:layers v)))
                               (= :species (get-in v [:mapping :color]))))])
 
+;; ## Layer order is paint order
+;;
+;; Layers paint in the order they are added: the first `lay-*` call
+;; renders first, and each later one on top of it. When layers overlap,
+;; that decides what stays visible -- so add the layer you want on top
+;; last.
+;;
+;; Two points at one spot. The large one is added first and the small
+;; one second, so the small dot reads on top of the large one:
+
+(-> {:x [1] :y [1]}
+    (pj/lay-point :x :y {:size 30 :color "#a6cee3"})
+    (pj/lay-point :x :y {:size 12 :color "#1f78b4"}))
+
+(kind/test-last
+ [(fn [fr]
+    (= [30 12]
+       (->> fr pj/plan :panels first :layers
+            (mapv (comp :radius :style)))))])
+
+;; The same rule lets a value label sit on a bar: add the label after
+;; the bar so it paints on top, and use `:align-x :right` so the label
+;; tucks inside the bar's end rather than spilling past it. (Bars and
+;; `pj/coord` are covered later; anchoring is the Text and Label
+;; Placement section of
+;; [Customization](./plotje_book.customization.html), and the
+;; [Cookbook](./plotje_book.cookbook.html) has a value-labels recipe.)
+
+(-> {:species ["setosa" "versicolor" "virginica"]
+     :pct     [33.3 33.3 33.3]}
+    (pj/lay-value-bar :species :pct {:color "#a6cee3"})
+    (pj/lay-text :species :pct {:text :pct :align-x :right})
+    (pj/coord :flip))
+
+(kind/test-last
+ [(fn [fr]
+    (= [:rect :text]
+       (->> fr pj/plan :panels first :layers (mapv :mark))))])
+
+;; Swapping the two calls swaps which layer paints on top -- paint
+;; order follows the order layers were added, not the layer type.
+
+(kind/test-last
+ [(fn [_]
+    (let [marks (fn [pose]
+                  (->> pose pj/plan :panels first :layers (mapv :mark)))
+          data {:species ["setosa" "versicolor" "virginica"]
+                :pct     [33.3 33.3 33.3]}]
+      (and (= [:rect :text]
+              (marks (-> data
+                         (pj/lay-value-bar :species :pct)
+                         (pj/lay-text :species :pct {:text :pct}))))
+           (= [:text :rect]
+              (marks (-> data
+                         (pj/lay-text :species :pct {:text :pct})
+                         (pj/lay-value-bar :species :pct)))))))])
+
 ;; ## Inference fills the gaps
 ;;
 ;; When you omit a choice, Plotje infers it from the data.

@@ -1004,15 +1004,17 @@
 
 
 (defmethod layer->membrane :px-grid [layer ctx]
-  (let [x-px-labels
+  (let [color [1 0 0]
+        round-formatter  (comp str int)
+        x-px-labels
         (flatten 
          (mapv
           (fn [px-x]
             [(ui/translate px-x
                            (ws/forward (:sy ctx) (:y-domain-min ctx))
-                           (ui/with-color [1 0 0]
-                             (ui/label (first (ws/format (ws/with-formatter (:sx ctx) (comp str int)) [px-x])))))
-             (ui/with-color [1 0 0]
+                           (ui/with-color color
+                             (ui/label (first (ws/format (ws/with-formatter (:sx ctx) round-formatter) [px-x])))))
+             (ui/with-color color
                (ui/with-style :membrane.ui/style-stroke-and-fill
                  (ui/path [px-x (ws/forward (:sy ctx) (:panel-height ctx))]
                           [px-x (ws/forward (:sy ctx) (:y-domain-min ctx))]
@@ -1030,17 +1032,17 @@
               (ws/forward (:sx ctx) (:x-domain-min ctx))
               px-y
 
-              (ui/with-color [1 0 0]
-                (ui/label (first (ws/format (ws/with-formatter (:sy ctx) (comp str int)) [px-y])))))
+              (ui/with-color color
+                (ui/label (first (ws/format (ws/with-formatter (:sy ctx) round-formatter) [px-y])))))
              
-             (ui/with-color [1 0 0]
+             (ui/with-color color
                (ui/with-style :membrane.ui/style-stroke-and-fill
                  (ui/path [ (ws/forward (:sx ctx) (:panel-width ctx)) px-y]
                           [ (ws/forward (:sx ctx) (:x-domain-min ctx)) px-y])))
              ])
           (map
            #(ws/forward (:sy ctx) %)
-           (ws/ticks (:sy ctx)))))
+           (ws/ticks (:sy c tx)))))
         
         ]
     (concat x-px-labels y-px-labels)

@@ -527,7 +527,7 @@
 (-> (rdatasets/datasets-mtcars)
     (pj/pose  :wt :mpg)
     pj/lay-point
-     ;(pj/lay :px-grid) ; debug layer, draws pixel grid
+     (pj/lay :px-grid) ; debug layer, draws pixel grid
     (pj/lay :free-text {:px-data [[160 30 "1st line"]
                                   [160 46 "2st line"]
                                   [160 62 "3rd line"]]})

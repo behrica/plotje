@@ -118,6 +118,12 @@
                         ;; per category and we draw each row's rect at the band centre.
                         :rejects [:position]
                         :doc "Interval — horizontal bars from x to x-end at categorical y. For Gantt-style timelines."})
+(register! :free-text {:mark :free-text :stat :identity  :accepts [:px-data] :doc "free text layer"})
+(register! :free-path {:mark :free-path :stat :identity  :accepts [:px-data] :doc "free path layer"})
+
+(register! :px-grid {:mark :px-grid :stat :identity   :doc "px grid layer"})
+
+
 ;; Annotation methods reject the universal options that have no
 ;; meaning for a single rule/band: there are no groups to dodge or
 ;; stack, no shape/jitter to vary across an aggregated mark, and the

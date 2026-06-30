@@ -518,12 +518,26 @@
 ;; ## Additional Examples from Visualization Galleries
 
 ;; ### Scatter with text labels
+
 ;; Source: [Vega-Lite: Text Scatterplot](https://vega.github.io/vega-lite/examples/text_scatterplot_colored.html)
 
+
+
+
 (-> (rdatasets/datasets-mtcars)
-    (pj/pose :wt :mpg)
+    (pj/pose  :wt :mpg)
     pj/lay-point
-    (pj/lay-text {:text :rownames})
+     ;(pj/lay :px-grid) ; debug layer, draws pixel grid
+    (pj/lay :free-text {:px-data [[160 30 "1st line"]
+                                  [160 46 "2st line"]
+                                  [160 62 "3rd line"]]})
+    (pj/lay :free-path {:px-data [[157 28]
+                                  [215 28]
+                                  [215 75]
+                                  [157 75]
+                                  [157 28]]})
+    (pj/lay :free-path {:px-data [[120 41]
+                                  [157 46]]})
     (pj/options {:title "Motor Trend Cars"
                  :x-label "Weight (1000 lbs)"
                  :y-label "Miles per Gallon"}))

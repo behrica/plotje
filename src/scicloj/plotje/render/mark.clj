@@ -987,3 +987,64 @@
             row-indices (assoc :row-idx (row-indices i))
             tooltip     (assoc :tooltip (make-interval-tooltip
                                          ctx x-temporal? y-cat x-start x-end label))))))))
+
+
+(defmethod layer->membrane :free-text [layer ctx]
+  (mapv
+   (fn [[px-x px-y text]]
+     (ui/translate px-x px-y
+                   (ui/with-color [0 0 0]
+                     (ui/label text))))
+   (:px-data layer)))
+
+(defmethod layer->membrane :free-path [layer ctx]
+  (ui/with-color [1 0 0]
+    (ui/with-style :membrane.ui/style-stroke
+      (apply ui/path (:px-data layer)))))
+
+
+(defmethod layer->membrane :px-grid [layer ctx]
+  (let [x-px-labels
+        (flatten 
+         (mapv
+          (fn [px-x]
+            [(ui/translate px-x
+                           (ws/forward (:sy ctx) (:y-domain-min ctx))
+                           (ui/with-color [1 0 0]
+                             (ui/label (first (ws/format (ws/with-formatter (:sx ctx) (comp str int)) [px-x])))))
+             (ui/with-color [1 0 0]
+               (ui/with-style :membrane.ui/style-stroke-and-fill
+                 (ui/path [px-x (ws/forward (:sy ctx) (:panel-height ctx))]
+                          [px-x (ws/forward (:sy ctx) (:y-domain-min ctx))]
+                          )))])
+          (map
+           #(ws/forward (:sx ctx) %)
+           (ws/ticks (:sx ctx)))))
+        
+        y-px-labels
+        (flatten
+         (mapv
+          (fn [px-y]
+            [
+             (ui/translate
+              (ws/forward (:sx ctx) (:x-domain-min ctx))
+              px-y
+
+              (ui/with-color [1 0 0]
+                (ui/label (first (ws/format (ws/with-formatter (:sy ctx) (comp str int)) [px-y])))))
+             
+             (ui/with-color [1 0 0]
+               (ui/with-style :membrane.ui/style-stroke-and-fill
+                 (ui/path [ (ws/forward (:sx ctx) (:panel-width ctx)) px-y]
+                          [ (ws/forward (:sx ctx) (:x-domain-min ctx)) px-y])))
+             ])
+          (map
+           #(ws/forward (:sy ctx) %)
+           (ws/ticks (:sy ctx)))))
+        
+        ]
+    (concat x-px-labels y-px-labels)
+    )
+  
+  )
+

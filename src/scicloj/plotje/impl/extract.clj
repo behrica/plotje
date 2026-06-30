@@ -661,6 +661,23 @@
      :x-temporal? (boolean (:x-temporal? draft-layer))
      :groups groups}))
 
+(defmethod extract-layer :free-text [draft-layer stat all-colors cfg]
+  {:mark :free-text
+   :style {}
+   :px-data (:px-data draft-layer)})
+
+(defmethod extract-layer :free-path [draft-layer stat all-colors cfg]
+  {:mark :free-path
+   :style {}
+   :px-data (:px-data draft-layer)})
+
+
+(defmethod extract-layer :px-grid [draft-layer stat all-colors cfg]
+  {:mark :px-grid
+   :style {}
+   })
+
+
 (defmethod extract-layer :default [draft-layer _stat _all-colors _cfg]
   (let [mark (:mark draft-layer)
         registered (sort (filter keyword?
